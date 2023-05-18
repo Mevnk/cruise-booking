@@ -7,18 +7,16 @@ import (
 
 type Cruise struct {
 	Id            uuid.UUID `bun:",pk"`
-	ShipID        int
+	ShipID        uuid.UUID
 	DepartureDate time.Time
 	Price         int
-	Excursions    string
 }
 
-func NewCruise(shipID int, departureDate time.Time, price int, excursions string) *Cruise {
+func NewCruise(shipID uuid.UUID, departureDate time.Time, price int) *Cruise {
 	return &Cruise{
 		Id:            uuid.New(),
 		ShipID:        shipID,
 		DepartureDate: departureDate,
 		Price:         price,
-		Excursions:    excursions,
 	}
 }

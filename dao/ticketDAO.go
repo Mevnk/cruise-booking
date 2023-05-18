@@ -3,14 +3,15 @@ package dao
 import (
 	"context"
 	"database/sql"
+	"github.com/google/uuid"
 	"pis/domain"
 )
 
 type TicketsDAO interface {
 	CreateTicket(ctx context.Context, ticket *domain.Ticket) error
 	UpdateTicket(ctx context.Context, ticket *domain.Ticket) error
-	DeleteTicket(ctx context.Context, ticketID int) error
-	GetTicketByID(ctx context.Context, ticketID int) (*domain.Ticket, error)
+	DeleteTicket(ctx context.Context, ticketID uuid.UUID) error
+	GetTicketByID(ctx context.Context, ticketID uuid.UUID) (*domain.Ticket, error)
 }
 
 type MySQLTicketsDAO struct {
@@ -35,13 +36,13 @@ func (dao *MySQLTicketsDAO) UpdateTicket(ctx context.Context, ticket *domain.Tic
 	return err
 }
 
-func (dao *MySQLTicketsDAO) DeleteTicket(ctx context.Context, ticketID int) error {
+func (dao *MySQLTicketsDAO) DeleteTicket(ctx context.Context, ticketID uuid.UUID) error {
 	query := "DELETE FROM Tickets WHERE id = ?"
 	_, err := dao.db.ExecContext(ctx, query, ticketID)
 	return err
 }
 
-func (dao *MySQLTicketsDAO) GetTicketByID(ctx context.Context, ticketID int) (*domain.Ticket, error) {
+func (dao *MySQLTicketsDAO) GetTicketByID(ctx context.Context, ticketID uuid.UUID) (*domain.Ticket, error) {
 	query := "SELECT id, cruise_id, passenger_id, passenger_class, bonuses FROM Tickets WHERE id = ?"
 	row := dao.db.QueryRowContext(ctx, query, ticketID)
 

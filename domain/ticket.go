@@ -4,13 +4,13 @@ import "github.com/google/uuid"
 
 type Ticket struct {
 	Id             uuid.UUID `bun:",pk"`
-	CruiseID       int
-	PassengerID    int
+	CruiseID       uuid.UUID `bun:",pk"`
+	PassengerID    uuid.UUID
 	PassengerClass string
 	Bonuses        string
 }
 
-func NewTicket(cruiseID int, passengerID int, passengerClass string, bonuses string) *Ticket {
+func NewTicket(cruiseID uuid.UUID, passengerID uuid.UUID, passengerClass string, bonuses string) *Ticket {
 	return &Ticket{
 		Id:             uuid.New(),
 		CruiseID:       cruiseID,

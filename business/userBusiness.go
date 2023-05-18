@@ -1,4 +1,4 @@
-package entity
+package business
 
 import (
 	"context"
@@ -13,26 +13,25 @@ import (
 	"time"
 )
 
-type UserEntity interface {
-	SignUp(params SignUpParams) (uuid.UUID, error)
-	SignIn(params SignInParams) (string, error)
-	GetUser(email string) (*domain.User, error)
-	GetUsersList() ([]*domain.User, error)
-	UpdateUserActiveStatus(params UpdateUserActiveParams) error
-	UpdateUserRole(params UpdateUserRoleParams) error
+type UserLogic interface {
+	SignUp(ctx context.Context, params SignUpParams) (uuid.UUID, error)
+	SignIn(ctx context.Context, params SignInParams) (string, error)
+	GetUser(ctx context.Context, email string) (*domain.User, error)
+	GetUsersList(ctx context.Context) ([]*domain.User, error)
+	UpdateUserRole(ctx context.Context, params UpdateUserRoleParams) error
 }
 
-type userEntity struct {
+type userLogic struct {
 	userDAO        dao.MySQLUsersDAO
 	roleDAO        dao.MySQLRolesDAO
 	tokenGenerator *jwt.TokenGenerator
 }
 
-func NewUserEntity(userDAO dao.MySQLUsersDAO) *userEntity {
-	return &userEntity{userDAO: userDAO}
+func NewUserLogic(userDAO dao.MySQLUsersDAO) *userLogic {
+	return &userLogic{userDAO: userDAO}
 }
 
-func (uc userEntity) SignUp(ctx context.Context, params SignUpParams) (uuid.UUID, error) {
+func (uc userLogic) SignUp(ctx context.Context, params SignUpParams) (uuid.UUID, error) {
 	passwordHash, err := hash.ToHashString(params.Password)
 	if err != nil {
 		return uuid.Nil, errors.New(fmt.Sprintf("password hashing error: %s", err.Error()))
@@ -50,14 +49,14 @@ func (uc userEntity) SignUp(ctx context.Context, params SignUpParams) (uuid.UUID
 	return user.Id, nil
 }
 
-func (uc userEntity) SignIn(ctx context.Context, params SignInParams) (string, error) {
+func (uc userLogic) SignIn(ctx context.Context, params SignInParams) (string, error) {
 	user, err := uc.userDAO.GetUserByEmail(ctx, params.Email)
 	if err != nil {
 		return "", err
 	}
 
 	if user == nil {
-		return "", customErrors.NewNotFoundError("user not found")
+		return "", customErrors.NewCustomError(customErrors.User, customErrors.NotFound)
 	}
 	if !hash.IsEqualWithHash(params.Password, user.Password) {
 		return "", errors.New("incorrect password")
@@ -70,29 +69,26 @@ func (uc userEntity) SignIn(ctx context.Context, params SignInParams) (string, e
 	})
 }
 
-func (uc userEntity) GetUser(ctx context.Context, email string) (*domain.User, error) {
+func (uc userLogic) GetUser(ctx context.Context, email string) (*domain.User, error) {
 	user, err := uc.userDAO.GetUserByEmail(ctx, email)
 	if err != nil {
 		return nil, err
 	}
 	if user == nil {
-		return nil, customErrors.NewNotFoundError("user not found")
+		return nil, customErrors.NewCustomError(customErrors.User, customErrors.NotFound)
 	}
 
 	return user, nil
 }
 
-func (uc userEntity) GetUsersList(ctx context.Context) ([]*domain.User, error) {
+func (uc userLogic) GetUsersList(ctx context.Context) ([]*domain.User, error) {
 	return uc.userDAO.GetUsers(ctx)
 }
 
-func (uc userEntity) UpdateUserRole(ctx context.Context, params UpdateUserRoleParams) error {
+func (uc userLogic) UpdateUserRole(ctx context.Context, params UpdateUserRoleParams) error {
 	user, err := uc.userDAO.GetUserById(ctx, params.UserId)
 	if err != nil {
 		return err
-	}
-	if user.Role.Name == params.Role {
-		return customErrors.NewUpdateError("The user already has this role")
 	}
 	switch params.Role {
 	case domain.USER, domain.MANAGER, domain.ADMIN:
@@ -102,7 +98,7 @@ func (uc userEntity) UpdateUserRole(ctx context.Context, params UpdateUserRolePa
 		}
 		user.RoleId = role.Id
 	default:
-		return customErrors.NewUpdateError("Wrong role name")
+		return customErrors.NewCustomError(customErrors.User, customErrors.Update)
 	}
 	return uc.userDAO.UpdateUser(ctx, user)
 }
