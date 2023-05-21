@@ -3,7 +3,7 @@ package domain
 import "github.com/google/uuid"
 
 type Excursion struct {
-	Id          uuid.UUID `bun:",pk"`
+	Id          uuid.UUID
 	Name        string
 	Description string
 	Price       int

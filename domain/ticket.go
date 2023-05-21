@@ -3,8 +3,8 @@ package domain
 import "github.com/google/uuid"
 
 type Ticket struct {
-	Id             uuid.UUID `bun:",pk"`
-	CruiseID       uuid.UUID `bun:",pk"`
+	Id             uuid.UUID
+	CruiseID       uuid.UUID
 	PassengerID    uuid.UUID
 	PassengerClass string
 	Bonuses        string
