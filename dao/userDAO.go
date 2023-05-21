@@ -36,7 +36,7 @@ func (dao *MySQLUsersDAO) UpdateUser(ctx context.Context, user *domain.User) err
 	return err
 }
 
-func (dao *MySQLUsersDAO) DeleteUser(ctx context.Context, userID int) error {
+func (dao *MySQLUsersDAO) DeleteUser(ctx context.Context, userID uuid.UUID) error {
 	query := "DELETE FROM Users WHERE id = ?"
 	_, err := dao.db.ExecContext(ctx, query, userID)
 	return err

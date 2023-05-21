@@ -19,6 +19,7 @@ type UserLogic interface {
 	GetUser(ctx context.Context, email string) (*domain.User, error)
 	GetUsersList(ctx context.Context) ([]*domain.User, error)
 	UpdateUserRole(ctx context.Context, params UpdateUserRoleParams) error
+	DeleteUser(ctx context.Context, userId uuid.UUID) (err error)
 }
 
 type userLogic struct {
@@ -32,6 +33,11 @@ func NewUserLogic(userDAO dao.MySQLUsersDAO) *userLogic {
 }
 
 func (uc userLogic) SignUp(ctx context.Context, params SignUpParams) (uuid.UUID, error) {
+	userCheck, err := uc.userDAO.GetUserByEmail(ctx, params.Email)
+	if userCheck != nil {
+		return userCheck.Id, customErrors.NewCustomError(customErrors.User, customErrors.Creation)
+	}
+
 	passwordHash, err := hash.ToHashString(params.Password)
 	if err != nil {
 		return uuid.Nil, errors.New(fmt.Sprintf("password hashing error: %s", err.Error()))
@@ -101,6 +107,14 @@ func (uc userLogic) UpdateUserRole(ctx context.Context, params UpdateUserRolePar
 		return customErrors.NewCustomError(customErrors.User, customErrors.Update)
 	}
 	return uc.userDAO.UpdateUser(ctx, user)
+}
+
+func (uc userLogic) DeleteUser(ctx context.Context, id uuid.UUID) (err error) {
+	err = uc.userDAO.DeleteUser(ctx, id)
+	if err != nil {
+		return customErrors.NewCustomError(customErrors.User, customErrors.Deletion)
+	}
+	return nil
 }
 
 type SignUpParams struct {

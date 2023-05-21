@@ -2,10 +2,12 @@ package business
 
 import (
 	"context"
+	"database/sql"
 	"github.com/google/uuid"
 	"pis/dao"
 	"pis/domain"
 	"pis/pkg/customErrors"
+	"pis/pkg/transactionManager"
 	"time"
 )
 
@@ -22,10 +24,19 @@ type cruiseLogic struct {
 	cruiseDAO          dao.CruisesDAO
 	excursionDAO       dao.ExcursionsDAO
 	cruiseExcursionDAO dao.ExcursionCruiseDAO
+	ticketDAO          dao.TicketsDAO
+	trxManager         transactionManager.TransactionManager
 }
 
 func (cl cruiseLogic) CreateCruise(ctx context.Context, params CruiseParams) (cruiseId uuid.UUID, err error) {
-	cruise := domain.NewCruise(params.ShipID, params.DepartureDate, params.Price)
+	cruise := domain.NewCruise(
+		params.ShipID,
+		params.DepartureDate,
+		params.Price,
+		params.Route,
+		params.NofPorts,
+		params.Duration,
+	)
 
 	if err = cl.cruiseDAO.CreateCruise(ctx, cruise); err != nil {
 		return uuid.Nil, customErrors.NewCustomError(customErrors.Cruise, customErrors.Creation)
@@ -47,9 +58,19 @@ func (cl cruiseLogic) GetCruiseData(ctx context.Context, uuid uuid.UUID) (cruise
 }
 
 func (cl cruiseLogic) DeleteCruise(ctx context.Context, id uuid.UUID) (err error) {
-	err = cl.cruiseDAO.DeleteCruise(ctx, id)
+	err = cl.trxManager.RunTransaction(ctx, func(ctx context.Context, tx *sql.Tx) error {
+		err := cl.cruiseDAO.DeleteCruise(ctx, id)
+		if err != nil {
+			return customErrors.NewCustomError(customErrors.Cruise, customErrors.Deletion)
+		}
+		err = cl.cruiseExcursionDAO.RemoveCruise(ctx, id)
+		if err != nil {
+			return customErrors.NewCustomError(customErrors.CruiseExcursion, customErrors.Deletion)
+		}
+		return nil
+	})
 	if err != nil {
-		return customErrors.NewCustomError(customErrors.Cruise, customErrors.Deletion)
+		return customErrors.NewCustomError(customErrors.Excursion, customErrors.Deletion)
 	}
 	return nil
 }
@@ -87,8 +108,8 @@ func (cl cruiseLogic) GetExcursions(ctx context.Context, cruiseId uuid.UUID) (ex
 		return nil, customErrors.NewScanError(customErrors.CruiseExcursion, customErrors.Iteration)
 	}
 
-	for id := range excursionIDs {
-		excursion, err := cl.excursionDAO.GetExcursionByID(ctx, id)
+	for i := 0; i < len(excursionIDs); i++ {
+		excursion, err := cl.excursionDAO.GetExcursionByID(ctx, excursionIDs[i])
 		if err != nil {
 			continue
 		}
@@ -101,4 +122,7 @@ type CruiseParams struct {
 	ShipID        uuid.UUID
 	DepartureDate time.Time
 	Price         int
+	Route         string
+	NofPorts      int
+	Duration      int
 }

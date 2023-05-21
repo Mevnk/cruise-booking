@@ -14,6 +14,8 @@ type ExcursionCruiseDAO interface {
 	RemoveExcursionFromCruise(ctx context.Context, excursionID, cruiseID uuid.UUID) error
 	GetExcursionsByCruise(ctx context.Context, cruiseID uuid.UUID) ([]uuid.UUID, error)
 	CheckBind(ctx context.Context, cruiseId uuid.UUID, excusrionId uuid.UUID) (result bool, err error)
+	RemoveExcursion(ctx context.Context, excursionID uuid.UUID) error
+	RemoveCruise(ctx context.Context, excursionID uuid.UUID) error
 }
 
 type excursionCruiseDAO struct {
@@ -31,7 +33,7 @@ func (dao *excursionCruiseDAO) AddExcursionToCruise(ctx context.Context, excursi
 
 	_, err := dao.db.ExecContext(ctx, query, excursionID.String(), cruiseID.String())
 	if err != nil {
-		return fmt.Errorf("failed to add excursion to cruise: %v", err)
+		return err
 	}
 
 	return nil
@@ -42,7 +44,29 @@ func (dao *excursionCruiseDAO) RemoveExcursionFromCruise(ctx context.Context, ex
 
 	_, err := dao.db.ExecContext(ctx, query, excursionID.String(), cruiseID.String())
 	if err != nil {
-		return fmt.Errorf("failed to remove excursion from cruise: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func (dao *excursionCruiseDAO) RemoveExcursion(ctx context.Context, excursionID uuid.UUID) error {
+	query := "DELETE FROM excursion_cruise WHERE excursion_id = ?"
+
+	_, err := dao.db.ExecContext(ctx, query, excursionID.String())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (dao *excursionCruiseDAO) RemoveCruise(ctx context.Context, cruiseId uuid.UUID) error {
+	query := "DELETE FROM excursion_cruise WHERE cruise_id = ?"
+
+	_, err := dao.db.ExecContext(ctx, query, cruiseId.String())
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -53,7 +77,7 @@ func (dao *excursionCruiseDAO) GetExcursionsByCruise(ctx context.Context, cruise
 
 	rows, err := dao.db.QueryContext(ctx, query, cruiseID.String())
 	if err != nil {
-		return nil, fmt.Errorf("failed to get excursions by cruise: %v", err)
+		return nil, err
 	}
 	defer rows.Close()
 

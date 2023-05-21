@@ -12,6 +12,7 @@ type CruisesDAO interface {
 	UpdateCruise(ctx context.Context, cruise *domain.Cruise) error
 	DeleteCruise(ctx context.Context, cruiseID uuid.UUID) error
 	GetCruiseByID(ctx context.Context, cruiseID uuid.UUID) (*domain.Cruise, error)
+	GetCruiseByShipId(ctx context.Context, shipId uuid.UUID) (*[]domain.Cruise, error)
 }
 
 type MySQLCruisesDAO struct {
@@ -25,13 +26,23 @@ func NewMySQLCruisesDAO(db *sql.DB) *MySQLCruisesDAO {
 }
 
 func (dao *MySQLCruisesDAO) CreateCruise(ctx context.Context, cruise *domain.Cruise) error {
-	query := "INSERT INTO Cruises (id, ship_id, departure_date, price, excursions) VALUES (?, ?, ?, ?, ?)"
-	_, err := dao.db.ExecContext(ctx, query, cruise.Id, cruise.ShipID, cruise.DepartureDate, cruise.Price)
+	query := "INSERT INTO Cruises (id, ship_id, departure_date, price, route, ports, duration) VALUES (?, ?, ?, ?, ?, ?, ?)"
+	_, err := dao.db.ExecContext(
+		ctx,
+		query,
+		cruise.Id,
+		cruise.ShipID,
+		cruise.DepartureDate,
+		cruise.Price,
+		cruise.Route,
+		cruise.NofPorts,
+		cruise.Duration,
+	)
 	return err
 }
 
 func (dao *MySQLCruisesDAO) UpdateCruise(ctx context.Context, cruise *domain.Cruise) error {
-	query := "UPDATE Cruises SET ship_id = ?, departure_date = ?, price = ?, excursions = ? WHERE id = ?"
+	query := "UPDATE Cruises SET ship_id = ?, departure_date = ?, price = ? WHERE id = ?"
 	_, err := dao.db.ExecContext(ctx, query, cruise.ShipID, cruise.DepartureDate, cruise.Price, cruise.Id)
 	return err
 }
@@ -56,4 +67,24 @@ func (dao *MySQLCruisesDAO) GetCruiseByID(ctx context.Context, cruiseID uuid.UUI
 	}
 
 	return cruise, nil
+}
+
+func (dao *MySQLCruisesDAO) GetCruiseByShipId(ctx context.Context, shipId uuid.UUID) ([]domain.Cruise, error) {
+	query := "SELECT * FROM Cruises WHERE ship_id = ?"
+	rows, err := dao.db.QueryContext(ctx, query, shipId)
+
+	var cruises []domain.Cruise
+	for rows.Next() {
+		var cruise domain.Cruise
+		err = rows.Scan(&cruise.Id, &shipId, &cruise.DepartureDate, &cruise.Price)
+		cruises = append(cruises, cruise)
+	}
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Cruise not found
+		}
+		return nil, err
+	}
+
+	return cruises, nil
 }
