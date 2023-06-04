@@ -11,7 +11,7 @@ import (
 )
 
 type ExcursionLogic interface {
-	CreateExcursion(ctx context.Context, params ExcursionParams) (err error)
+	CreateExcursion(ctx context.Context, params ExcursionParams) (id uuid.UUID, err error)
 	UpdateExcursion(ctx context.Context, params ExcursionParams) (err error)
 	DeleteExcursion(ctx context.Context, excursionId uuid.UUID) (err error)
 }
@@ -22,15 +22,15 @@ type excursionLogic struct {
 	trxManager   transactionManager.TransactionManager
 }
 
-func (el excursionLogic) CreateExcursion(ctx context.Context, params ExcursionParams) (err error) {
+func (el excursionLogic) CreateExcursion(ctx context.Context, params ExcursionParams) (id uuid.UUID, err error) {
 	excursion := domain.NewExcursion(params.Name, params.Description, params.Price)
 
 	err = el.excursionDAO.CreateExcursion(ctx, excursion)
 	if err != nil {
-		return customErrors.NewCustomError(customErrors.Excursion, customErrors.Creation)
+		return uuid.Nil, customErrors.NewCustomError(customErrors.Excursion, customErrors.Creation)
 	}
 
-	return err
+	return excursion.Id, err
 }
 
 func (el excursionLogic) UpdateExcursion(ctx context.Context, params ExcursionParams) (err error) {

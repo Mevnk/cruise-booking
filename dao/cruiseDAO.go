@@ -31,7 +31,6 @@ func (dao *MySQLCruisesDAO) CreateCruise(ctx context.Context, cruise *domain.Cru
 		ctx,
 		query,
 		cruise.Id,
-		cruise.ShipID,
 		cruise.DepartureDate,
 		cruise.Price,
 		cruise.Route,
@@ -43,7 +42,7 @@ func (dao *MySQLCruisesDAO) CreateCruise(ctx context.Context, cruise *domain.Cru
 
 func (dao *MySQLCruisesDAO) UpdateCruise(ctx context.Context, cruise *domain.Cruise) error {
 	query := "UPDATE Cruises SET ship_id = ?, departure_date = ?, price = ? WHERE id = ?"
-	_, err := dao.db.ExecContext(ctx, query, cruise.ShipID, cruise.DepartureDate, cruise.Price, cruise.Id)
+	_, err := dao.db.ExecContext(ctx, query, cruise.DepartureDate, cruise.Price, cruise.Id)
 	return err
 }
 
@@ -58,7 +57,7 @@ func (dao *MySQLCruisesDAO) GetCruiseByID(ctx context.Context, cruiseID uuid.UUI
 	row := dao.db.QueryRowContext(ctx, query, cruiseID)
 
 	cruise := &domain.Cruise{}
-	err := row.Scan(&cruise.Id, &cruise.ShipID, &cruise.DepartureDate, &cruise.Price)
+	err := row.Scan(&cruise.Id, &cruise.DepartureDate, &cruise.Price)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // Cruise not found

@@ -30,7 +30,6 @@ type cruiseLogic struct {
 
 func (cl cruiseLogic) CreateCruise(ctx context.Context, params CruiseParams) (cruiseId uuid.UUID, err error) {
 	cruise := domain.NewCruise(
-		params.ShipID,
 		params.DepartureDate,
 		params.Price,
 		params.Route,
@@ -119,7 +118,6 @@ func (cl cruiseLogic) GetExcursions(ctx context.Context, cruiseId uuid.UUID) (ex
 }
 
 type CruiseParams struct {
-	ShipID        uuid.UUID
 	DepartureDate time.Time
 	Price         int
 	Route         string
